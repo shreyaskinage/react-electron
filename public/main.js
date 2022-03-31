@@ -1,7 +1,8 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain, ipcRenderer } = require('electron')
 
 const path = require('path')
 const isDev = require('electron-is-dev')
+const { autoUpdater } = require('electron-updater');
 
 require('@electron/remote/main').initialize()
 
@@ -15,6 +16,14 @@ function createWindow() {
       enableRemoteModule: true
     }
   })
+
+  win.once('ready-to-show', () => {
+    autoUpdater.checkForUpdatesAndNotify();
+  });
+
+  win.on('closed', function () {
+    win = null;
+  });
 
   win.loadURL(
     isDev
@@ -39,3 +48,21 @@ app.on('activate', function () {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
+
+autoUpdater.on('update-available', () => {
+  win.webContents.send('update_available');
+});
+autoUpdater.on('update-downloaded', () => {
+  win.webContents.send('update_downloaded');
+});
+
+ipcRenderer.on('update_available', () => {
+  ipcRenderer.removeAllListeners('update_available');
+});
+ipcRenderer.on('update_downloaded', () => {
+  ipcRenderer.removeAllListeners('update_downloaded');
+});
+
+ipcMain.on('restart_app', () => {
+  autoUpdater.quitAndInstall();
+});

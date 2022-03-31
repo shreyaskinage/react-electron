@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { FilesViewer } from './FilesViewer'
 
 const fs = window.require('fs')
 const pathModule = window.require('path')
 
 const { app } = window.require('@electron/remote')
+
+const { ipcRenderer } = window.require('electron');
 
 const formatSize = size => {
   var i = Math.floor(Math.log(size) / Math.log(1024))
@@ -44,6 +46,17 @@ function App() {
 
   const [searchString, setSearchString] = useState('')
   const filteredFiles = files.filter(s => s.name.startsWith(searchString))
+
+  useEffect(() => {
+    var version = document.getElementById('version');
+
+    ipcRenderer.send('app_version');
+    ipcRenderer.on('app_version', (event, arg) => {
+      console.log(event, arg);
+      ipcRenderer.removeAllListeners('app_version');
+      version.innerText = 'Version ' + arg.version;
+    });
+  }, []);
 
   return (
     <div className="container mt-2">
